@@ -1,6 +1,7 @@
 import re
+import sys
 
-TOKENS = [
+TOKENS = {
     "WHILE",
     "LET",
     "FUNCTION",
@@ -32,7 +33,7 @@ TOKENS = [
     "GT",
     "QUESTION",
     "COLON"
-]
+}
 
 t_PLUS    = r'\+'
 t_MINUS   = r'-'
@@ -80,17 +81,14 @@ def lexer(input, tokenFormats):
             if match:
                 lexeme = match.group(0)
                 if tag:
-                    if tag == "ID" and len(str(lexeme)) > 27: #rough fix to check length. Very hacky
-                        # sys.stderr.write('Illegal length for identifier: %s\n' % lexeme)
-                        break;
-                    attr = checkForAttribute(lexeme,tag)
-                    token = (lexeme,tag,attr)
+                    #attr = checkForAttribute(lexeme,tag)
+                    token = (lexeme, tag) #removed attr from here
                     tokens.append(token)
                     break
                 else:
                     break
         if not match:
-            # sys.stderr.write('Illegal or unknown character: %s\n' % input[pos])
+            sys.stderr.write('Illegal or unknown character: %s\n' % input[pos])
             pos = pos + 1
         else:
             pos = match.end(0)
