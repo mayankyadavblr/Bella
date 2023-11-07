@@ -1,6 +1,17 @@
 import re
 
+class Token:
+    def __init__(self, type, value):
+        self.type = type
+        self.value = value
 
+    def __eq__(self, other):
+        if isinstance(other, Token):
+            return self.type == other.type and self.value == other.value
+        return False
+
+    def __repr__(self):
+        return f'Token({self.type}, {self.value})'
 class Lexer():
     tokenFormats = {
         "WHILE": r'\bwhile\b',
@@ -62,7 +73,7 @@ class Lexer():
 
                     #attr = checkForAttribute(lexeme,tag)
                     if not tag == "IGNORE":
-                        token = (lexeme, tag) #removed attr from here
+                        token = Token(tag, lexeme.strip()) #removed attr from here
                         tokens.append(token)
                         break
 
