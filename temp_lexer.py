@@ -82,10 +82,6 @@ class Lexer():
                 pos = pos + 1
             else:
                 pos = match.end(0)
+        tokens.append(Token("EOF", "EOF"))
         return tokens 
 
-test_input = '''
-let x = 5;
-'''
-tokens = Lexer(test_input).lexer()
-print(tokens)

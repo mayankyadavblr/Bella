@@ -20,13 +20,16 @@ class Parser:
         self.position = 0
     
     def consumeValue(self, tokenValue):
-        print(self.tokens[self.position].value)
+        #print(self.tokens[self.position].value)
         if self.tokens[self.position].value == tokenValue:
             self.position += 1
             return self.tokens[self.position - 1]
         else:
             raise SyntaxError(f'Expected {tokenValue} but found {self.tokens[self.position].value}')
-        
+    
+    def at(self):
+        return self.tokens[self.position]
+
     def consumeType(self, tokenType):
         if self.tokens[self.position].type == tokenType:
             self.position += 1
@@ -41,20 +44,25 @@ class Parser:
 
     def parseProgram(self):
         root = Node("Program")
-        while self.position < len(self.tokens):
+        while self.at().type != 'EOF': 
+            print(self.at().value)
             if self.tokens[self.position].value == '{':
+                self.consumeValue('{')
                 root.children += [self.parseBlock()]
             else:
                 root.children += [self.parseStatement()]
+        return root
 
     def parseBlock(self):
         root = Node("Block")
-        while self.position < len(self.tokens):
-            if self.tokens[self.position].value == '}':
-                self.consumeValue('}')
-                return
+        while self.at().type != 'RBRACE':
+            if self.at().value == '{':
+                self.consumeValue('{')
+                root.children += [self.parseBlock()]
             else:
                 root.children += [self.parseStatement()]
+        self.consumeValue('}')
+        return root
 
     def parseStatement(self):
         if self.tokens[self.position].value == 'let':
@@ -74,35 +82,53 @@ class Parser:
 
     def parseExpression(self):
         
-        left = self.parseTerm()
+        
+        return self.parseComparison()
+
+        
+    def parseComparison(self):
+        left = self.parseAdditive()
+
+        while self.at().value in ['<', '<=', '==', '!=', '>=', '>']:
+            op = self.consumeValue(self.at().value)
+            right = self.parseAdditive()
+            left = Node("BINOP", op.value, children=[left, right])
+
         return left
-        if self.tokens[self.position].value in ['-', '!']:
-            return [self.parseUnary()]
         
-        if self.tokens[self.position].value in ['+', '-', '*', '/', '%', '**', '<', '<=', '==', '!=', '>=', '>', '&&', '||']:
-            return [self.parseBinary()]
-        else:
-            return left
+    def parseAdditive(self):
+        left = self.parseMultiplicative()
+
+        while self.at().value in ['+', '-']:
+            op = self.consumeValue(self.at().value)
+            right = self.parseMultiplicative()
+            left = Node("BINOP", op.value, children=[left, right])
         
+        return left
 
-    def parseBinary(self, left): 
-        root = Node("Binary")
-        root.children += [self.parseExpression()]
-        root.children += [self.consumeValue(self.tokens[self.position].value)]
-        root.children += [self.parseExpression()]
+    def parseMultiplicative(self):
+        left = self.parseFundamental()
 
-        return root
-
+        while self.at().value in ['*', '/', '%', '**']:
+            op = self.consumeValue(self.at().value)
+            right = self.parseFundamental()
+            left = Node("BINOP", op.value, children=[left, right])
+        
+        return left
+    
     def parseUnary(self):
-        root = Node("Unary")
-        root.children += [self.consumeValue(self.tokens[self.position].value)]
-        root.children += [self.parseExpression()]
-        return root
+
+        if self.at().value in ['-', '!']:
+            op = self.consumeValue(self.at().value)
+            right = self.parseFundamental()
+            return Node(op.value, children=[right])
+        else:
+            return self.parsePrimary()
 
     def parseDeclaration(self):
         root = Node("Assignment")
         self.consumeValue('let')
-        root.children += [self.parseVariable()]
+        root.children += [self.parseFundamental()]
         self.consumeValue('=')
         root.children += [self.parseExpression()]
         self.consumeValue(';')
@@ -111,11 +137,11 @@ class Parser:
     def parseFunction(self):
         root = Node("Function")
         self.consumeValue('function')
-        root.children += [self.parseVariable()]
+        root.children += [self.parseFundamental()]
         self.consumeValue('(')
         params = Node("Parameters")
         while self.tokens[self.position].value != ')':
-            params.children += [self.parseVariable()]
+            params.children += [self.parseFundamental()]
         self.consumeValue(')')
         root.children += [params]
         root.children += [self.parseBlock()]
@@ -130,7 +156,7 @@ class Parser:
     
     def parseAssignment(self):
         root = Node("Assignment")
-        root.children += [self.parseVariable()]
+        root.children += [self.parseFundamental()]
         self.consumeValue('=')
         root.children += [self.parseExpression()]
         self.consumeValue(';')
@@ -143,20 +169,21 @@ class Parser:
         root.children += [self.parseBlock()]
         return root
 
-    def parseInteger(self):
-        root = Node("INTEGER", self.consumeType("INTEGER").value)
-        return root
+    def parseFundamental(self):
+        tk = self.at()
+        self.position += 1
 
-    def parseVariable(self):
-        root = Node("ID", self.consumeType("ID").value)
-        return root
+        if tk.type == 'NUMBER':
+            return Node(tk.type, tk.value)
+        elif tk.type == 'ID':
+            return Node(tk.type, tk.value)
+        elif tk.type == 'LPAREN':
+            self.consumeType('LPAREN')
+            root = self.parseExpression()
+            self.consumeType('RPAREN')
+            return root
+
     
-    def parseTerm(self):
-        if self.tokens[self.position].type == 'INTEGER':
-            return self.parseInteger()
-        elif self.tokens[self.position].type == 'ID':
-            return self.parseVariable()
-
-    
-
-print(Parser(Lexer('let x = 5;').lexer()).parse())
+tokens = Lexer('let x = 5 * (y - 10); {let y = x;{let z = 1 * 2; let mayank = god;}}').lexer()
+print(tokens)
+print(Parser(tokens).parse())
