@@ -74,17 +74,41 @@ class Parser:
         elif self.tokens[self.position].value == 'print':
             return self.parsePrint()
         
-        elif self.tokens[self.position].type == 'VARIABLE':
+        elif self.tokens[self.position].type == 'ID':
             return self.parseAssignment()
 
         elif self.tokens[self.position].value == 'while':
             return self.parseWhile()
+        
+        elif self.at().type == 'LBRACE':
+            return self.parseBlock()
 
     def parseExpression(self):
-        
-        
-        return self.parseComparison()
 
+        return self.parseLogical()
+    
+    def parseTernary(self, left):
+        root = Node("TriOp")
+        root.children += [left]
+        self.consumeValue('?')
+        root.children += [self.parseLogical()]
+        self.consumeValue(':')
+        root.children += [self.parseExpression()]
+        #root.children += [self.parseExpression()]
+        return root
+
+    def parseLogical(self):
+        left = self.parseComparison()
+
+        if self.at().value == '?':
+            return self.parseTernary(left)
+
+        while self.at().value in ['&&', '||']:
+            op = self.consumeValue(self.at().value)
+            right = self.parseComparison()
+            left = Node("BINOP", op.value, children=[left, right])
+        
+        return left
         
     def parseComparison(self):
         left = self.parseAdditive()
@@ -126,7 +150,7 @@ class Parser:
             return self.parsePrimary()
 
     def parseDeclaration(self):
-        root = Node("Assignment")
+        root = Node("Declaration")
         self.consumeValue('let')
         root.children += [self.parseFundamental()]
         self.consumeValue('=')
@@ -137,14 +161,19 @@ class Parser:
     def parseFunction(self):
         root = Node("Function")
         self.consumeValue('function')
-        root.children += [self.parseFundamental()]
+        tk = self.consumeType('ID')
+        root.children += [Node(tk.type, tk.value)]
         self.consumeValue('(')
         params = Node("Parameters")
-        while self.tokens[self.position].value != ')':
+        params.children += [self.parseFundamental()]
+        while self.at().value != ')':
+            self.consumeValue(',')
             params.children += [self.parseFundamental()]
         self.consumeValue(')')
+        self.consumeValue('=')
         root.children += [params]
-        root.children += [self.parseBlock()]
+        root.children += [self.parseExpression()]
+        self.consumeValue(';')
         return root
     
     def parsePrint(self):
@@ -166,6 +195,7 @@ class Parser:
         root = Node("While")
         self.consumeValue('while')
         root.children += [self.parseExpression()]
+        self.consumeValue('{')
         root.children += [self.parseBlock()]
         return root
 
@@ -176,14 +206,31 @@ class Parser:
         if tk.type == 'NUMBER':
             return Node(tk.type, tk.value)
         elif tk.type == 'ID':
+            if self.at().value == '(':
+                return self.parseFunctionCall(tk)
             return Node(tk.type, tk.value)
         elif tk.type == 'LPAREN':
             self.consumeType('LPAREN')
             root = self.parseExpression()
             self.consumeType('RPAREN')
             return root
-
     
-tokens = Lexer('let x = 5 * (y - 10); {let y = x;{let z = 1 * 2; let mayank = god;}}').lexer()
+    def parseFunctionCall(self, tk):
+        root = Node("FunctionCall")
+        root.children += [Node("ID", tk.value)]
+        self.consumeValue('(')
+        root.children += [self.parseExpression()]
+        while self.at().value != ')':
+            self.consumeValue(',')
+            root.children += [self.parseExpression()]
+        self.consumeValue(')')
+        return root
+
+
+'''tokens = Lexer('while dozen >= 3 || (gcd(1, 10) != 5) { dozen = dozen - 2.75E+19 ** 1 ** 3;}').lexer()
+print(tokens)
+print(Parser(tokens).parse())'''
+
+tokens = Lexer('function gcd(x, y) = y == 0 ? x : gcd(y, x % y);').lexer()
 print(tokens)
 print(Parser(tokens).parse())
