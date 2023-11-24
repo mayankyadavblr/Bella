@@ -231,6 +231,6 @@ class Parser:
 print(tokens)
 print(Parser(tokens).parse())'''
 
-tokens = Lexer('function gcd(x, y) = y == 0 ? x : gcd(y, x % y);').lexer()
+'''tokens = Lexer('function gcd(x, y) = y == 0 ? x : gcd(y, x % y);').lexer()
 print(tokens)
-print(Parser(tokens).parse())
+print(Parser(tokens).parse())'''
