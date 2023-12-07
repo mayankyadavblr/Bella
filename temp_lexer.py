@@ -14,6 +14,8 @@ class Token:
         return f'Token({self.type}, {self.value})'
 class Lexer():
     tokenFormats = {
+        "ALLOC": r'\balloc\b',
+        "FREE": r'\bfree\b',
         "WHILE": r'\bwhile\b',
         "LET": r'\blet\b',
         "FUNCTION": r'\bfunction\b',
