@@ -2,4 +2,4 @@
 Front end Compiler for the language Bella
 Built in Python
 
-Includes Lexer, Parer, Symbol Table and Memory checking
+Includes Lexer, Parser, Symbol Table and Memory checking
